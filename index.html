@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEX CODE</title>
+<style>
+:root{--bg:#1e1f22;--panel:#2b2d31;--line:#3a3d43;--text:#dfe1e5;--muted:#8b8f98;--acc:#7c5cff;--ok:#3ecf8e;--err:#ff6b6b;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-weight:800;letter-spacing:1px;font-size:18px}
+.logo b{color:var(--acc)}
+.user{font-size:12px;background:#3b2f7a;color:#cfc4ff;padding:3px 9px;border-radius:99px}
+.tabs{margin-left:auto;display:flex;gap:6px}
+button{background:#3a3d43;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit;font-size:14px}
+button:hover{filter:brightness(1.2)}
+button.on,button.primary{background:var(--acc);color:#fff}
+.layout{flex:1;display:grid;grid-template-columns:190px minmax(0,1fr) 340px;min-height:0}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:10px;overflow:auto}
+aside h4{margin:4px 2px 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.lang{display:block;width:100%;text-align:left;margin-bottom:6px}
+.help{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+.help code{font-family:var(--mono);color:#cfc4ff}
+.center{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bar{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar .file{color:var(--muted);font-family:var(--mono);font-size:13px;margin-right:auto}
+.editor{flex:1;display:flex;min-height:0;font-family:var(--mono);font-size:14px;line-height:21px}
+.gutter{width:48px;padding:10px 8px 10px 0;text-align:right;color:var(--muted);background:#232428;overflow:hidden;user-select:none;flex:none}
+.gutter div{height:21px}
+.gutter .err{color:var(--err);font-weight:700;background:#4a2326}
+textarea#code{flex:1;min-width:0;border:0;outline:0;resize:none;padding:10px 12px;background:var(--bg);color:var(--text);font:inherit;white-space:pre;overflow:auto;tab-size:4;line-height:21px}
+.right{display:flex;flex-direction:column;gap:10px;padding:10px;background:var(--panel);border-left:1px solid var(--line);overflow:auto;min-height:0}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+.card h3{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+pre.out{margin:0;font-family:var(--mono);font-size:13px;white-space:pre-wrap;word-break:break-word;min-height:60px;max-height:240px;overflow:auto}
+iframe.prev{width:100%;height:260px;border:0;background:#fff;border-radius:8px}
+.chat{max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.msg{padding:7px 9px;border-radius:8px;font-size:14px;line-height:1.45;white-space:pre-wrap;max-width:92%}
+.msg.ai{background:#2f2a52}
+.msg.me{background:#33363a;align-self:flex-end}
+.ask{display:flex;gap:6px}
+input,textarea{font:inherit}
+.ask input,.field input,.field textarea{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea.rep{width:100%;height:150px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:12px;padding:6px;margin-top:8px}
+.row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+#siteView{display:none;flex:1;overflow:auto;padding:14px;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px;align-items:start}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.field input[type=color]{height:38px;padding:2px}
+.sites{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:860px){
+  body{height:auto;min-height:100vh;overflow:auto}
+  .layout{grid-template-columns:1fr}
+  aside{border-right:0;border-bottom:1px solid var(--line);display:flex;gap:6px;overflow-x:auto;padding:8px;align-items:center}
+  aside h4,.help{display:none}
+  .lang{width:auto;white-space:nowrap;margin:0}
+  .editor{height:320px;flex:none}
+  .right{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  #siteView{grid-template-columns:1fr}
+  .tabs{margin-left:0;width:100%}
+  .tabs button{flex:1}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">NEX<b> CODE</b></div>
+  <span class="user">👤 NEXUS</span>
+  <div class="tabs">
+    <button id="tabCode" class="on">Код</button>
+    <button id="tabSite">Сайты NEXUS</button>
+  </div>
+</header>
+
+<div class="layout" id="codeView">
+  <aside>
+    <h4>Языки</h4>
+    <div id="langList"></div>
+    <div class="help">
+      <b>NEX:</b><br>
+      <code>say "текст"</code> — вывод<br>
+      <code>let a = 5</code> — переменная<br>
+      <code>a * 2 + 1</code> — арифметика (+ - * /)<br>
+      <code># комментарий</code>
+    </div>
+  </aside>
+
+  <section class="center">
+    <div class="bar">
+      <span class="file" id="fileName"></span>
+      <button id="runBtn" class="primary">▶ Запустить</button>
+      <button id="fmtBtn">Формат</button>
+    </div>
+    <div class="editor">
+      <div class="gutter" id="gutter"></div>
+      <textarea id="code" spellcheck="false"></textarea>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="card"><h3>Вывод</h3><pre class="out" id="out">Нажми «Запустить» или Ctrl+Enter</pre></div>
+    <div class="card" id="previewCard" style="display:none"><h3>Предпросмотр HTML</h3><iframe class="prev" id="preview" sandbox="allow-scripts"></iframe></div>
+    <div class="card">
+      <h3>ИИ-помощник</h3>
+      <div class="chat" id="chat"></div>
+      <div class="ask"><input id="q" placeholder="Например: почему ошибка?"><button id="askBtn">→</button></div>
+      <div class="row">
+        <button id="explainBtn">Найти ошибку</button>
+        <button id="reportBtn">Отчёт для ИИ</button>
+      </div>
+      <textarea class="rep" id="report" style="display:none" readonly></textarea>
+      <div class="row"><button id="copyBtn" style="display:none">Скопировать отчёт</button></div>
+    </div>
+    <div class="card">
+      <h3>Авто-проверка кода</h3>
+      <select id="autoSel" style="background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px;margin-bottom:8px">
+        <option value="30">каждые 30 мс</option>
+        <option value="5000">каждые 5 сек</option>
+        <option value="30000" selected>каждые 30 сек</option>
+        <option value="60000">каждую минуту</option>
+      </select>
+      <pre class="out" id="autoLog">Ожидание первой проверки…</pre>
+    </div>
+    <div class="card">
+      <h3>Генератор кода (шаблоны)</h3>
+      <div class="ask"><input id="genQ" placeholder="сайт, калькулятор или цикл"><button id="genCodeBtn">Создать</button></div>
+      <pre class="out" id="genLog" style="margin-top:8px;max-height:120px"></pre>
+    </div>
+  </section>
+</div>
+
+<div id="siteView">
+  <div>
+    <div class="card">
+      <h3>Конструктор сайта · владелец NEXUS</h3>
+      <div class="field">Название<input id="sTitle" value="Мой сайт"></div>
+      <div class="field">Подзаголовок<input id="sTag" value="Создано в NEX CODE"></div>
+      <div class="field">Текст<textarea id="sText" rows="4">Добро пожаловать! Это мой первый сайт.</textarea></div>
+      <div class="field">Текст кнопки<input id="sBtn" value="Узнать больше"></div>
+      <div class="field">Цвет<input type="color" id="sColor" value="#7c5cff"></div>
+      <div class="row">
+        <button id="genBtn" class="primary">Обновить превью</button>
+        <button id="saveSiteBtn">Сохранить</button>
+        <button id="copySiteBtn">Скопировать HTML</button>
+        <button id="linkBtn" class="primary">Создать ссылку</button>
+      </div>
+      <div class="sites" id="siteList"></div>
+      <div id="siteLink" style="display:none;margin-top:12px">
+        <a id="siteA" target="_blank" rel="noopener" style="color:#b9a9ff;font-weight:700;word-break:break-all">Открыть сайт</a>
+        <textarea class="rep" id="siteLinkText" style="height:90px" readonly></textarea>
+        <div class="row"><button id="linkCopy">Скопировать ссылку</button></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">Эта ссылка содержит весь сайт внутри. Она работает в браузере, но длинная. Для короткой публичной ссылки загрузите HTML на GitHub Pages.</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h3>Превью</h3><iframe class="prev" id="sitePrev" sandbox="allow-scripts" style="height:420px"></iframe></div>
+    <div class="card" style="margin-top:14px"><h3>HTML-код</h3><textarea class="rep" id="siteCode" style="height:200px" readonly></textarea></div>
+  </div>
+</div>
+
+<script>
+/* ---------- языки ---------- */
+const LANGS = {
+  python:     {name:'Python',     file:'main.py',   code:'# Python\nname = "NEXUS"\nfor i in range(3):\n    print("Привет,", name, i)\n'},
+  html:       {name:'HTML',       file:'index.html',code:'<!DOCTYPE html>\n<html>\n<body style="font-family:sans-serif">\n  <h1 style="color:#7c5cff">Привет из NEX CODE</h1>\n</body>\n</html>'},
+  javascript: {name:'JavaScript', file:'app.js',    code:'const name = "NEXUS";\nconsole.log("Привет,", name);\n'},
+  nex:        {name:'NEX ✦',      file:'main.nex',  code:'# Язык NEX\nsay "Привет из NEX!"\nlet a = 6\nlet b = 7\nlet c = a * b\nsay c\n'},
+  brainfuck:  {name:'Brainfuck',  file:'main.bf',   code:'++++++++[>++++++++<-]>+.\n'},
+  ook:        {name:'Ook!',       file:'main.ook',  code:''}
+};
+/* языки без запуска: редактор и авто-проверка работают, выполнение пока не подключено */
+[['COBOL','cobol'],['Fortran','fortran'],['Pascal','pascal'],['Basic','basic'],['Lisp','lisp'],['Forth','forth'],['APL','apl'],['Prolog','prolog'],['Ada','ada'],['Algol 68','algol68'],['Logo','logo'],['Smalltalk','smalltalk'],['Erlang','erlang'],['Haskell','haskell'],['Scheme','scheme'],['Tcl','tcl'],['Awk','awk'],['Perl','perl'],['Ruby','ruby'],['PHP','php'],['Lua','lua'],['Go','go'],['Rust','rust'],['Kotlin','kotlin'],['Swift','swift'],['C','c'],['C++','cpp'],['C#','csharp'],['Java','java'],['TypeScript','typescript'],['Julia','julia'],['R','r'],['Dart','dart'],['Elixir','elixir'],['Zig','zig'],['Nim','nim'],['Scratch','scratch'],['LOLCODE','lolcode'],['Chef','chef'],['Befunge','befunge'],['Piet','piet'],['Whitespace','whitespace'],['MATLAB','matlab'],['Simula','simula'],['PL/I','pli'],['Modula-2','modula2'],['Eiffel','eiffel'],['Icon','icon'],['REXX','rexx'],['SNOBOL','snobol'],['OCaml','ocaml']].forEach(([name, k]) => { LANGS[k] = {name, file: 'main.' + k, code: ''}; });
+
+/* ---------- Brainfuck и Ook! ---------- */
+const OOK_TO_BF = {'.?':'>','?.':'<','..':'+','!!':'-','!.':'.','.!':',','!?':'[','?!':']'};
+const BF_TO_OOK = {'>':'Ook. Ook?','<':'Ook? Ook.','+':'Ook. Ook.','-':'Ook! Ook!','.':'Ook! Ook.',',':'Ook. Ook!','[':'Ook! Ook?',']':'Ook? Ook!'};
+const bf2ook = s => [...s].filter(c => BF_TO_OOK[c]).map(c => BF_TO_OOK[c]).join(' ');
+const ook2bf = s => s.replace(/Ook([.?!])\s*Ook([.?!])/g, (m,a,b) => OOK_TO_BF[a+b] || '');
+
+function runBF(code, limit = 2000000){
+  const jumps = {}, st = [];
+  for (let i = 0; i < code.length; i++){
+    if (code[i] === '[') st.push(i);
+    else if (code[i] === ']'){
+      if (!st.length) throw new Error('Лишняя ] в позиции ' + i);
+      const j = st.pop(); jumps[i] = j; jumps[j] = i;
+    }
+  }
+  if (st.length) throw new Error('Нет закрывающей ] для [ в позиции ' + st[st.length-1]);
+  const mem = new Uint8Array(30000); let p = 0, ip = 0, out = '', steps = 0;
+  while (ip < code.length){
+    if (++steps > limit) throw new Error('Превышен лимит шагов (возможен бесконечный цикл)');
+    switch (code[ip]){
+      case '>': p = (p + 1) % 30000; break;
+      case '<': p = (p + 29999) % 30000; break;
+      case '+': mem[p]++; break;
+      case '-': mem[p]--; break;
+      case '.': out += String.fromCharCode(mem[p]); break;
+      case ',': mem[p] = 0; break;
+      case '[': if (!mem[p]) ip = jumps[ip]; break;
+      case ']': if (mem[p]) ip = jumps[ip]; break;
+    }
+    ip++;
+  }
+  return out;
+}
+
+/* ---------- NEX ---------- */
+function runNEX(src){
+  const vars = {}, out = [];
+  const val = (t, ln) => {
+    if (t === undefined || t === '') throw new Error(`Строка ${ln}: ожидалось значение`);
+    if (/^-?\d+(\.\d+)?$/.test(t)) return parseFloat(t);
+    if (/^".*"$/.test(t)) return t.slice(1, -1);
+    if (t in vars) return vars[t];
+    throw new Error(`Строка ${ln}: неизвестное имя «${t}»`);
+  };
+  const evalExpr = (e, ln) => {
+    e = e.trim();
+    if (/^".*"$/.test(e)) return e.slice(1, -1);
+    const parts = e.split(/\s+/);
+    let acc = val(parts[0], ln);
+    for (let k = 1; k < parts.length; k += 2){
+      const op = parts[k], b = val(parts[k+1], ln);
+      if (op === '+') acc = (typeof acc === 'string' || typeof b === 'string') ? String(acc) + String(b) : acc + b;
+      else if (op === '-') acc = acc - b;
+      else if (op === '*') acc = acc * b;
+      else if (op === '/'){ if (b === 0) throw new Error(`Строка ${ln}: деление на ноль`); acc = acc / b; }
+      else throw new Error(`Строка ${ln}: неизвестный оператор «${op}»`);
+    }
+    return acc;
+  };
+  src.split('\n').forEach((raw, i) => {
+    const ln = i + 1, line = raw.trim();
+    if (!line || line.startsWith('#')) return;
+    let m;
+    if ((m = line.match(/^say\s+(.+)$/))) out.push(String(evalExpr(m[1], ln)));
+    else if ((m = line.match(/^let\s+([a-zA-Z_]\w*)\s*=\s*(.+)$/))) vars[m[1]] = evalExpr(m[2], ln);
+    else throw new Error(`Строка ${ln}: непонятная команда «${line.split(/\s+/)[0]}». Доступно: say, let`);
+  });
+  return out.join('\n');
+}
+
+/* ---------- JavaScript ---------- */
+function runJS(src){
+  const logs = [];
+  const fmt = a => typeof a === 'object' ? JSON.stringify(a) : String(a);
+  const c = {
+    log: (...a) => logs.push(a.map(fmt).join(' ')),
+    info: (...a) => logs.push(a.map(fmt).join(' ')),
+    warn: (...a) => logs.push('⚠ ' + a.map(fmt).join(' ')),
+    error: (...a) => logs.push('⚠ ' + a.map(fmt).join(' '))
+  };
+  try { new Function('console', src)(c); return {out: logs.join('\n')}; }
+  catch (e){
+    const m = (e.stack || '').match(/<anonymous>:(\d+)/);
+    return {out: logs.join('\n'), err: `${e.name}: ${e.message}`, line: m ? (+m[1] - 2) : null};
+  }
+}
+
+/* ---------- Python (Pyodide, грузится по требованию) ---------- */
+let pyPromise = null;
+function loadPy(){
+  if (!pyPromise) pyPromise = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+    s.onload = async () => { try { res(await loadPyodide()); } catch (e) { rej(e); } };
+    s.onerror = () => rej(new Error('Не удалось загрузить Python (Pyodide)'));
+    document.head.appendChild(s);
+  });
+  return pyPromise;
+}
+async function runPython(src){
+  const py = await loadPy();
+  const buf = [];
+  py.setStdout({batched: s => buf.push(s)});
+  py.setStderr({batched: s => buf.push(s)});
+  try { await py.runPythonAsync(src); return {out: buf.join('\n')}; }
+  catch (e){ return {out: buf.join('\n'), err: String(e.message || e)}; }
+}
+
+/* ---------- Помощник (правила, не нейросеть) ---------- */
+function tipsFor(c){
+  const t = [], e = c.err || '';
+  if (!e) return t;
+  if (/is not defined|NameError/.test(e)) t.push('Имя не объявлено: проверь написание и что переменная создана до использования.');
+  if (/SyntaxError|Unexpected|Invalid|непонятная/.test(e)) t.push('Синтаксис: проверь скобки, кавычки и (в Python) двоеточия.');
+  if (/IndentationError/.test(e)) t.push('Отступы: в Python блоки должны быть выровнены одинаково (4 пробела).');
+  if (/TypeError/.test(e)) t.push('Тип не подходит к операции, например вызов не функции или обращение к undefined/None.');
+  if (/ZeroDivision|деление на ноль/.test(e)) t.push('Деление на ноль: добавь проверку делителя.');
+  if (/лимит шагов/.test(e)) t.push('Похоже на бесконечный цикл: проверь условие выхода.');
+  if (/закрывающей|Лишняя/.test(e)) t.push('Скобки [ ]: у каждой [ нужна пара ].');
+  if (c.line) t.push(`Ошибка на строке ${c.line}: начни проверку с неё.`);
+  if (!t.length) t.push('Для этой ошибки у меня нет готовой подсказки. Посмотри текст ошибки и строку выше.');
+  return t;
+}
+
+/* ---------- состояние ---------- */
+const $ = id => document.getElementById(id);
+const ta = $('code'), gutter = $('gutter'), outEl = $('out'), chat = $('chat');
+const prev = $('preview'), previewCard = $('previewCard');
+let cur = 'python', drafts = {}, errLine = null, lastOut = '', lastCtx = {lang: 'python', code: '', err: null, line: null};
+
+function findLine(msg){ const m = (msg || '').match(/(?:Строка|line) (\d+)/); return m ? +m[1] : null; }
+
+function renderGutter(){
+  const n = ta.value.split('\n').length;
+  let h = '';
+  for (let i = 1; i <= n; i++) h += `<div class="${i === errLine ? 'err' : ''}">${i}</div>`;
+  gutter.innerHTML = h;
+}
+
+function say(who, text){
+  const d = document.createElement('div');
+  d.className = 'msg ' + (who === 'me' ? 'me' : 'ai');
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function setLang(k){
+  drafts[cur] = ta.value;
+  cur = k;
+  ta.value = drafts[k] ?? LANGS[k].code;
+  $('fileName').textContent = LANGS[k].file;
+  document.querySelectorAll('.lang').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  previewCard.style.display = 'none';
+  errLine = null;
+  renderGutter();
+}
+
+async function run(){
+  const src = ta.value;
+  errLine = null;
+  outEl.style.color = 'var(--text)';
+  let res;
+  try {
+    if (cur === 'html'){
+      prev.srcdoc = src;
+      previewCard.style.display = 'block';
+      outEl.textContent = '✔ Страница обновлена в предпросмотре ниже.';
+      lastOut = ''; lastCtx = {lang: cur, code: src, err: null, line: null};
+      renderGutter();
+      return;
+    }
+    previewCard.style.display = 'none';
+    if (!['python','javascript','nex','brainfuck','ook'].includes(cur)){
+      outEl.textContent = `Выполнение для ${LANGS[cur].name} пока не подключено. Редактор и авто-проверка работают.`;
+      outEl.style.color = 'var(--muted)';
+      return;
+    }
+    if (cur === 'python'){ outEl.textContent = '⏳ Загружаю Python (первый запуск может занять ~10 сек)…'; res = await runPython(src); }
+    else if (cur === 'javascript') res = runJS(src);
+    else if (cur === 'nex') res = {out: runNEX(src)};
+    else if (cur === 'brainfuck') res = {out: runBF(src)};
+    else if (cur === 'ook') res = {out: runBF(ook2bf(src))};
+  } catch (e){
+    res = {out: '', err: e.message};
+  }
+  errLine = res.line ?? findLine(res.err);
+  lastOut = res.out || '';
+  lastCtx = {lang: cur, code: src, err: res.err || null, line: errLine};
+  outEl.textContent = res.err ? (lastOut + (lastOut ? '\n\n' : '') + '❌ ' + res.err) : (lastOut || '(нет вывода)');
+  outEl.style.color = res.err ? 'var(--err)' : 'var(--ok)';
+  renderGutter();
+  if (res.err){
+    say('ai', 'Нашёл ошибку:\n' + tipsFor(lastCtx).join('\n'));
+  }
+}
+
+function answer(q){
+  q = q.toLowerCase();
+  const t = tipsFor(lastCtx);
+  if (/почему|ошиб|баг|не работает|исправ|найди|найти/.test(q))
+    return t.length ? t.join('\n') : 'Ошибок в последнем запуске нет. Запусти код, и я проверю вывод.';
+  if (/строк|сколько/.test(q)) return `В коде ${ta.value.split('\n').length} строк.`;
+  if (/объясни|что делает/.test(q))
+    return 'Я локальный помощник по правилам: нахожу типичные ошибки. Полноценное объяснение кода даст подключённая языковая модель (нужен API-ключ и сервер).';
+  return t.join('\n') || 'Не понял вопрос. Спроси «почему ошибка?» или нажми «Найти ошибку».';
+}
+
+function buildReport(){
+  const c = lastCtx;
+  return [
+    '=== NEX CODE: отчёт ===',
+    'Язык: ' + LANGS[c.lang].name,
+    '',
+    '--- Код ---', ta.value, '',
+    '--- Вывод ---', lastOut || '(пусто)', '',
+    '--- Ошибка ---', c.err ? c.err + (c.line ? ` (строка ${c.line})` : '') : 'нет', '',
+    '--- Что сделал помощник ---', tipsFor(c).join('\n') || '—'
+  ].join('\n');
+}
+
+/* ---------- сайты NEXUS ---------- */
+const esc = s => s.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+function siteHTML(){
+  const c = $('sColor').value, t = esc($('sTitle').value), g = esc($('sTag').value),
+        x = esc($('sText').value), b = esc($('sBtn').value);
+  return `<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t}</title>
+<style>body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#eee}header{background:${c};padding:60px 20px;text-align:center}h1{margin:0;font-size:clamp(28px,6vw,52px)}.tag{opacity:.9}main{max-width:720px;margin:auto;padding:24px 20px;line-height:1.6}.btn{display:inline-block;margin-top:16px;background:${c};color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none}footer{text-align:center;padding:24px;opacity:.6;font-size:14px}</style>
+</head><body>
+<header><h1>${t}</h1><p class="tag">${g}</p></header>
+<main><p>${x}</p><a class="btn" href="#">${b}</a></main>
+<footer>Сделано на NEX CODE · владелец: NEXUS</footer>
+</body></html>`;
+}
+function genSite(){
+  const h = siteHTML();
+  $('sitePrev').srcdoc = h;
+  $('siteCode').value = h;
+}
+const sites = [];
+function renderSites(){
+  $('siteList').innerHTML = '';
+  sites.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.textContent = '📄 ' + s.name;
+    b.onclick = () => { $('sTitle').value = s.name; $('sTag').value = s.tag; $('sText').value = s.text; $('sBtn').value = s.btn; $('sColor').value = s.color; genSite(); };
+    $('siteList').appendChild(b);
+  });
+}
+
+/* ---------- интерфейс ---------- */
+Object.keys(LANGS).forEach(k => {
+  const b = document.createElement('button');
+  b.className = 'lang';
+  b.dataset.k = k;
+  b.textContent = LANGS[k].name;
+  b.onclick = () => setLang(k);
+  $('langList').appendChild(b);
+});
+
+ta.addEventListener('input', () => { errLine = null; renderGutter(); });
+ta.addEventListener('scroll', () => { gutter.scrollTop = ta.scrollTop; });
+ta.addEventListener('keydown', e => {
+  if (e.key === 'Tab'){ e.preventDefault(); ta.setRangeText('    ', ta.selectionStart, ta.selectionEnd, 'end'); renderGutter(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); run(); }
+});
+
+$('runBtn').onclick = run;
+$('fmtBtn').onclick = () => {
+  ta.value = ta.value.split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n*$/, '\n');
+  renderGutter();
+};
+$('askBtn').onclick = () => {
+  const q = $('q').value.trim(); if (!q) return;
+  say('me', q); say('ai', answer(q)); $('q').value = '';
+};
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') $('askBtn').click(); });
+$('explainBtn').onclick = () => {
+  const t = tipsFor(lastCtx);
+  say('ai', t.length ? t.join('\n') : 'Ошибок в последнем запуске нет. Нажми «Запустить».');
+};
+$('reportBtn').onclick = () => {
+  const r = $('report');
+  r.value = buildReport();
+  r.style.display = 'block';
+  $('copyBtn').style.display = 'inline-block';
+  $('copyBtn').textContent = 'Скопировать отчёт';
+};
+$('copyBtn').onclick = () => {
+  const r = $('report');
+  if (navigator.clipboard){
+    navigator.clipboard.writeText(r.value)
+      .then(() => { $('copyBtn').textContent = 'Скопировано ✔'; })
+      .catch(() => { r.select(); $('copyBtn').textContent = 'Выдели текст и скопируй'; });
+  } else { r.select(); $('copyBtn').textContent = 'Выдели текст и скопируй'; }
+};
+
+$('tabCode').onclick = () => showView('code');
+$('tabSite').onclick = () => showView('site');
+function showView(v){
+  const code = v === 'code';
+  $('codeView').style.display = code ? 'grid' : 'none';
+  $('siteView').style.display = code ? 'none' : 'grid';
+  $('tabCode').classList.toggle('on', code);
+  $('tabSite').classList.toggle('on', !code);
+}
+
+$('genBtn').onclick = genSite;
+$('copySiteBtn').onclick = () => {
+  const h = siteHTML();
+  const done = t => { $('copySiteBtn').textContent = t; };
+  if (navigator.clipboard) navigator.clipboard.writeText(h).then(() => done('Скопировано ✔')).catch(() => { $('siteCode').select(); done('Выдели и скопируй'); });
+  else { $('siteCode').select(); done('Выдели и скопируй'); }
+};
+$('saveSiteBtn').onclick = () => {
+  sites.push({name: $('sTitle').value || 'Сайт', tag: $('sTag').value, text: $('sText').value, btn: $('sBtn').value, color: $('sColor').value});
+  renderSites();
+};
+['sTitle','sTag','sText','sBtn','sColor'].forEach(id => $(id).addEventListener('input', genSite));
+
+/* ---------- авто-проверка (интервал выбирается в списке) ---------- */
+let autoTimer = null, lastCheck = '', autoLines = [];
+function syntaxCheck(lang, src){
+  if (lang === 'javascript'){ try { new Function('console', src); return 'синтаксис JS в порядке'; } catch (e){ return 'ошибка синтаксиса: ' + e.message; } }
+  if (lang === 'nex'){ try { runNEX(src); return 'команды NEX распознаны'; } catch (e){ return 'ошибка: ' + e.message; } }
+  if (lang === 'brainfuck' || lang === 'ook'){
+    const b = lang === 'ook' ? ook2bf(src) : src;
+    let d = 0;
+    for (const c of b){ if (c === '[') d++; else if (c === ']') d--; if (d < 0) break; }
+    return d === 0 ? 'скобки [ ] сбалансированы' : 'ошибка: скобки [ ] не сходятся';
+  }
+  if (lang === 'html'){
+    const o = (src.match(/<[a-z]/gi) || []).length, c = (src.match(/<\/[a-z]/gi) || []).length;
+    return `открывающих тегов: ${o}, закрывающих: ${c}`;
+  }
+  if (lang === 'python') return 'проверка без запуска для Python недоступна, запусти вручную';
+  return 'для этого языка проверки пока нет';
+}
+function autoCheck(){
+  const r = syntaxCheck(cur, ta.value);
+  const key = cur + '|' + ta.value + '|' + r;
+  if (key === lastCheck) return; // код и результат не менялись: в лог ничего не пишем
+  lastCheck = key;
+  const t = new Date().toLocaleTimeString('ru-RU');
+  autoLines.unshift(`[${t}] ${LANGS[cur].name}: ${r}`);
+  autoLines = autoLines.slice(0, 20);
+  $('autoLog').textContent = autoLines.join('\n');
+}
+function setAuto(){ clearInterval(autoTimer); autoTimer = setInterval(autoCheck, +$('autoSel').value); }
+$('autoSel').onchange = setAuto;
+
+/* ---------- генератор шаблонов (не нейросеть) ---------- */
+const TEMPLATES = [
+  {keys:['сайт','страниц'], lang:'html', name:'Лендинг', code:'<!DOCTYPE html>\n<html lang="ru">\n<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Мой сайт</title></head>\n<body style="margin:0;font-family:sans-serif">\n  <header style="background:#7c5cff;color:#fff;padding:60px 20px;text-align:center"><h1>Мой сайт</h1><p>Создано в NEX CODE</p></header>\n  <main style="max-width:720px;margin:auto;padding:24px"><p>Текст страницы.</p></main>\n</body>\n</html>\n'},
+  {keys:['калькулятор','сумм','сложи'], lang:'javascript', name:'Калькулятор', code:'function add(a, b) {\n  return a + b;\n}\n\nconsole.log("2 + 3 =", add(2, 3));\n'},
+  {keys:['цикл','повтор','список'], lang:'python', name:'Цикл', code:'for i in range(5):\n    print("Шаг", i)\n'}
+];
+$('genCodeBtn').onclick = () => {
+  const q = $('genQ').value.toLowerCase();
+  const t = TEMPLATES.find(x => x.keys.some(k => q.includes(k)));
+  if (!t){ $('genLog').textContent = 'Не нашёл шаблон. Попробуй: сайт, калькулятор или цикл.'; return; }
+  setLang(t.lang);          // сохраняет черновик текущего языка
+  ta.value = t.code;        // вставляем шаблон
+  drafts[t.lang] = t.code;
+  renderGutter();
+  const msg = `Сделал: вставил шаблон «${t.name}» на языке ${LANGS[t.lang].name}. Нажми «Запустить», чтобы проверить.`;
+  $('genLog').textContent = msg;
+  say('ai', msg);
+};
+
+setAuto();
+
+/* ---------- ссылка на сайт (data:-ссылка со всем HTML внутри) ---------- */
+$('linkBtn').onclick = () => {
+  const url = 'data:text/html;charset=utf-8,' + encodeURIComponent(siteHTML());
+  $('siteA').href = url;
+  $('siteLinkText').value = url;
+  $('siteLink').style.display = 'block';
+};
+$('linkCopy').onclick = () => {
+  const r = $('siteLinkText');
+  const done = t => { $('linkCopy').textContent = t; };
+  if (navigator.clipboard) navigator.clipboard.writeText(r.value).then(() => done('Скопировано ✔')).catch(() => { r.select(); done('Выдели и скопируй'); });
+  else { r.select(); done('Выдели и скопируй'); }
+};
+
+/* ---------- старт ---------- */
+LANGS.ook.code = bf2ook('++++++++[>++++++++<-]>+.');
+setLang('python');
+genSite();
+say('ai', 'Привет! Я помогу найти ошибку. Запусти код или спроси меня: «почему ошибка?»\nВажно: я работаю по правилам, а не как нейросеть.');
+</script>
+</body>
+</html>
