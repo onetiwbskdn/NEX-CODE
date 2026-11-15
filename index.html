@@ -49,6 +49,9 @@ textarea.rep{width:100%;height:150px;background:var(--panel);color:var(--text);b
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;font-size:13px;color:var(--muted)}
 .field input[type=color]{height:38px;padding:2px}
 .sites{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#gamePanel{display:none;border-top:1px solid var(--line);background:var(--panel);padding:8px 10px}
+#gamePanel .gbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;color:var(--muted)}
+#gameFrame{width:100%;height:300px;border:0;background:#111;border-radius:8px;display:block}
 @media(max-width:860px){
   body{height:auto;min-height:100vh;overflow:auto}
   .layout{grid-template-columns:1fr}
@@ -91,6 +94,12 @@ textarea.rep{width:100%;height:150px;background:var(--panel);color:var(--text);b
       <span class="file" id="fileName"></span>
       <button id="runBtn" class="primary">▶ Запустить</button>
       <button id="fmtBtn">Формат</button>
+      <button id="fixBtn">Исправить</button>
+      <button id="openBtn">Открыть файл</button>
+      <button id="saveBtn">Сохранить</button>
+      <button id="copyCodeBtn">Копировать код</button>
+      <input type="file" id="fileIn" accept=".py,.js,.html,.htm,.nex,.bf,.ook,.txt" hidden>
+      <button id="winBtn">▶ Окно программы</button>
     </div>
     <div class="editor">
       <div class="gutter" id="gutter"></div>
@@ -130,6 +139,11 @@ textarea.rep{width:100%;height:150px;background:var(--panel);color:var(--text);b
   </section>
 </div>
 
+<div id="gamePanel">
+  <div class="gbar"><span>Окно программы (HTML и JavaScript). Стрелки работают на ПК.</span><button id="winClose" style="margin-left:auto">✕ Закрыть</button></div>
+  <iframe id="gameFrame" sandbox="allow-scripts"></iframe>
+</div>
+
 <div id="siteView">
   <div>
     <div class="card">
@@ -160,13 +174,14 @@ textarea.rep{width:100%;height:150px;background:var(--panel);color:var(--text);b
   </div>
 </div>
 
+<script src="nexplus.js"></script>
 <script>
 /* ---------- языки ---------- */
 const LANGS = {
   python:     {name:'Python',     file:'main.py',   code:'# Python\nname = "NEXUS"\nfor i in range(3):\n    print("Привет,", name, i)\n'},
   html:       {name:'HTML',       file:'index.html',code:'<!DOCTYPE html>\n<html>\n<body style="font-family:sans-serif">\n  <h1 style="color:#7c5cff">Привет из NEX CODE</h1>\n</body>\n</html>'},
   javascript: {name:'JavaScript', file:'app.js',    code:'const name = "NEXUS";\nconsole.log("Привет,", name);\n'},
-  nex:        {name:'NEX ✦',      file:'main.nex',  code:'# Язык NEX\nsay "Привет из NEX!"\nlet a = 6\nlet b = 7\nlet c = a * b\nsay c\n'},
+  nex:        {name:'NEX+ ✦',     file:'main.nex',  code:'# NEX+ v0.1\nsay "Привет из NEX+!"\nlet a = 6\nlet b = 7\nlet c = a * b\nsay c\n\ndef квадрат(x)\n    return x * x\nend\n\nfor i in 1..3\n    say "квадрат " + i + " = " + квадрат(i)\nend\n'},
   brainfuck:  {name:'Brainfuck',  file:'main.bf',   code:'++++++++[>++++++++<-]>+.\n'},
   ook:        {name:'Ook!',       file:'main.ook',  code:''}
 };
@@ -353,7 +368,12 @@ async function run(){
     }
     if (cur === 'python'){ outEl.textContent = '⏳ Загружаю Python (первый запуск может занять ~10 сек)…'; res = await runPython(src); }
     else if (cur === 'javascript') res = runJS(src);
-    else if (cur === 'nex') res = {out: runNEX(src)};
+    else if (cur === 'nex'){
+      const o = [], w = [];
+      const prog = NexPlus.parseProgram(src, {lenient: true, warnings: w});   // непонятные строки пропускаем, а не падаем
+      NexPlus.runProgram(prog, s => o.push(s));
+      res = {out: o.join('\n') + (w.length ? '\n\n⚠ Пропущено непонятных строк: ' + w.length + '\n' + w.join('\n') : '')};
+    }
     else if (cur === 'brainfuck') res = {out: runBF(src)};
     else if (cur === 'ook') res = {out: runBF(ook2bf(src))};
   } catch (e){
@@ -439,6 +459,7 @@ ta.addEventListener('scroll', () => { gutter.scrollTop = ta.scrollTop; });
 ta.addEventListener('keydown', e => {
   if (e.key === 'Tab'){ e.preventDefault(); ta.setRangeText('    ', ta.selectionStart, ta.selectionEnd, 'end'); renderGutter(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); run(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){ e.preventDefault(); $('saveBtn').click(); }
 });
 
 $('runBtn').onclick = run;
@@ -498,7 +519,12 @@ $('saveSiteBtn').onclick = () => {
 let autoTimer = null, lastCheck = '', autoLines = [];
 function syntaxCheck(lang, src){
   if (lang === 'javascript'){ try { new Function('console', src); return 'синтаксис JS в порядке'; } catch (e){ return 'ошибка синтаксиса: ' + e.message; } }
-  if (lang === 'nex'){ try { runNEX(src); return 'команды NEX распознаны'; } catch (e){ return 'ошибка: ' + e.message; } }
+  if (lang === 'nex'){
+    const w = [];
+    try { NexPlus.parseProgram(src, {lenient: true, warnings: w}); }
+    catch (e){ return 'ошибка: ' + e.message; }
+    return w.length ? `непонятных строк: ${w.length}` : 'код NEX+ распознан';
+  }
   if (lang === 'brainfuck' || lang === 'ook'){
     const b = lang === 'ook' ? ook2bf(src) : src;
     let d = 0;
@@ -529,6 +555,29 @@ $('autoSel').onchange = setAuto;
 const TEMPLATES = [
   {keys:['сайт','страниц'], lang:'html', name:'Лендинг', code:'<!DOCTYPE html>\n<html lang="ru">\n<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Мой сайт</title></head>\n<body style="margin:0;font-family:sans-serif">\n  <header style="background:#7c5cff;color:#fff;padding:60px 20px;text-align:center"><h1>Мой сайт</h1><p>Создано в NEX CODE</p></header>\n  <main style="max-width:720px;margin:auto;padding:24px"><p>Текст страницы.</p></main>\n</body>\n</html>\n'},
   {keys:['калькулятор','сумм','сложи'], lang:'javascript', name:'Калькулятор', code:'function add(a, b) {\n  return a + b;\n}\n\nconsole.log("2 + 3 =", add(2, 3));\n'},
+  {keys:['игра','game'], lang:'html', name:'Игра-квадрат', code:`<!DOCTYPE html>
+<html lang="ru"><body style="margin:0;background:#111;color:#eee;font-family:sans-serif;text-align:center">
+<p>Стрелки на клавиатуре двигают квадрат</p>
+<canvas id="c" width="480" height="300" style="background:#222;max-width:95%"></canvas>
+<script>
+const c = document.getElementById('c'), g = c.getContext('2d');
+let x = 220, y = 130;
+const keys = {};
+addEventListener('keydown', e => keys[e.key] = true);
+addEventListener('keyup', e => keys[e.key] = false);
+function loop() {
+  if (keys.ArrowLeft) x -= 3;
+  if (keys.ArrowRight) x += 3;
+  if (keys.ArrowUp) y -= 3;
+  if (keys.ArrowDown) y += 3;
+  g.clearRect(0, 0, c.width, c.height);
+  g.fillStyle = '#7c5cff';
+  g.fillRect(x, y, 40, 40);
+  requestAnimationFrame(loop);
+}
+loop();
+<\/script>
+</body></html>`},
   {keys:['цикл','повтор','список'], lang:'python', name:'Цикл', code:'for i in range(5):\n    print("Шаг", i)\n'}
 ];
 $('genCodeBtn').onclick = () => {
@@ -560,8 +609,115 @@ $('linkCopy').onclick = () => {
   else { r.select(); done('Выдели и скопируй'); }
 };
 
+/* ---------- исправление (только механические ошибки NEX+) ---------- */
+function autoFixNex(src){
+  const fixes = [];
+  let lines = src.split('\n').map(l => l.replace(/\s+$/, ''));
+  lines = lines.map((l, i) => {
+    const q = (l.match(/"/g) || []).length;
+    if (q % 2 === 1 && !l.trim().startsWith('#')){ fixes.push(`строка ${i + 1}: добавлена закрывающая кавычка`); return l + '"'; }
+    return l;
+  });
+  let open = 0;
+  lines.forEach(l => {
+    const w = l.trim().split(/\s+/)[0];
+    if (['if', 'while', 'for', 'def'].includes(w)) open++;
+    else if (w === 'end') open--;
+  });
+  for (; open > 0; open--){ lines.push('end'); fixes.push('добавлен пропущенный end в конце файла'); }
+  if (open < 0) fixes.push('есть лишний end: удали его вручную (автоматически не удаляю)');
+  return {code: lines.join('\n').replace(/\n*$/, '\n'), fixes};
+}
+// Полное исправление: закрывает кавычки и блоки, затем комментирует строки, которые движок не понимает,
+// и повторяет, пока программа не начнёт выполняться без ошибок. Суть кода по строкам сохраняется, но
+// логика непонятных строк теряется: их нужно будет переписать вручную или попросить ИИ.
+function autoFixNex2(src){
+  const base = autoFixNex(src);
+  const lines = base.code.split('\n');
+  const fixes = base.fixes.slice();
+  const done = new Set();
+  for (let round = 0; round < 40; round++){
+    const w = [];
+    let err = null;
+    try {
+      const prog = NexPlus.parseProgram(lines.join('\n'), {lenient: true, warnings: w});
+      NexPlus.runProgram(prog, () => {});
+    } catch (e) { err = e; }
+    const nums = w.map(m => (m.match(/Строка (\d+)/) || [])[1]).filter(Boolean).map(Number);
+    if (err && err.line) nums.push(err.line);
+    const targets = [...new Set(nums)].filter(n => lines[n - 1] !== undefined && lines[n - 1].trim() && !lines[n - 1].trim().startsWith('#') && !done.has(n));
+    if (!targets.length) break;
+    targets.forEach(n => { lines[n - 1] = '# ' + lines[n - 1]; done.add(n); fixes.push(`строка ${n}: не понимаю, закомментировал`); });
+  }
+  return {code: lines.join('\n').replace(/\n*$/, '\n'), fixes};
+}
+$('fixBtn').onclick = () => {
+  if (cur !== 'nex'){ say('ai', 'Автоисправление пока работает только для NEX+.'); return; }
+  const r = autoFixNex2(ta.value);
+  ta.value = r.code;
+  renderGutter();
+  say('ai', r.fixes.length ? 'Исправил:\n' + r.fixes.join('\n') + '\nНажми «Запустить».' : 'Механических ошибок не нашёл. Если код не работает, пришли текст ошибки.');
+};
+
+/* ---------- окно программы (HTML и JavaScript) ---------- */
+function windowHTML(){
+  if (cur === 'html') return ta.value;
+  if (cur === 'javascript') return `<!DOCTYPE html><html><body style="margin:0;background:#111;color:#eee;font-family:sans-serif;padding:10px"><script>${ta.value}<\/script></body></html>`;
+  return null;
+}
+$('winBtn').onclick = () => {
+  const h = windowHTML();
+  if (h === null){
+    say('ai', 'Окно работает для HTML и JavaScript. Для ' + LANGS[cur].name + ' окна пока нет.');
+    return;
+  }
+  $('gameFrame').srcdoc = h;
+  $('gamePanel').style.display = 'block';
+};
+$('winClose').onclick = () => { $('gamePanel').style.display = 'none'; $('gameFrame').srcdoc = ''; };
+
 /* ---------- старт ---------- */
 LANGS.ook.code = bf2ook('++++++++[>++++++++<-]>+.');
+/* ---------- открыть, сохранить, копировать код ---------- */
+const EXT_TO_LANG = {py: 'python', html: 'html', htm: 'html', js: 'javascript', nex: 'nex', bf: 'brainfuck', ook: 'ook'};
+$('openBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = () => {
+  const f = $('fileIn').files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    const k = EXT_TO_LANG[ext] || cur;
+    setLang(k);
+    ta.value = String(reader.result);
+    renderGutter();
+    say('ai', `Открыл «${f.name}» как ${LANGS[k].name}.`);
+  };
+  reader.readAsText(f);
+  $('fileIn').value = '';
+};
+$('saveBtn').onclick = () => {
+  drafts[cur] = ta.value;
+  try {
+    localStorage.setItem('nexcode:' + cur, ta.value);
+    say('ai', `Сохранил черновик ${LANGS[cur].name} в этом браузере.`);
+  } catch (e) {
+    say('ai', 'Не получилось сохранить в браузере. Скопируй код кнопкой «Копировать код».');
+  }
+};
+$('copyCodeBtn').onclick = () => {
+  const btn = $('copyCodeBtn');
+  if (navigator.clipboard){
+    navigator.clipboard.writeText(ta.value)
+      .then(() => { btn.textContent = 'Скопировано ✔'; })
+      .catch(() => { ta.select(); btn.textContent = 'Выдели и скопируй'; });
+  } else { ta.select(); btn.textContent = 'Выдели и скопируй'; }
+};
+// восстанавливаем сохранённые черновики
+Object.keys(LANGS).forEach(k => {
+  try { const v = localStorage.getItem('nexcode:' + k); if (v !== null) drafts[k] = v; } catch (e) {}
+});
+
 setLang('python');
 genSite();
 say('ai', 'Привет! Я помогу найти ошибку. Запусти код или спроси меня: «почему ошибка?»\nВажно: я работаю по правилам, а не как нейросеть.');
